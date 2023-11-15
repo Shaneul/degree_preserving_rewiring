@@ -1,0 +1,6 @@
+LICENSE.txt
+setup.py
+degree_preserving_rewiring/degree_preserving_rewiring.egg-info/PKG-INFO
+degree_preserving_rewiring/degree_preserving_rewiring.egg-info/SOURCES.txt
+degree_preserving_rewiring/degree_preserving_rewiring.egg-info/dependency_links.txt
+degree_preserving_rewiring/degree_preserving_rewiring.egg-info/top_level.txt
