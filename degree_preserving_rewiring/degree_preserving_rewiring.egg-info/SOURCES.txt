@@ -1,4 +1,5 @@
 LICENSE.txt
+README.md
 setup.py
 degree_preserving_rewiring/degree_preserving_rewiring.egg-info/PKG-INFO
 degree_preserving_rewiring/degree_preserving_rewiring.egg-info/SOURCES.txt

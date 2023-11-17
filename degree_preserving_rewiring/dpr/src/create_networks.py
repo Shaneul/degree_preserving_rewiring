@@ -1,5 +1,20 @@
 import networkx as nx
 import pickle
+
+def create_network(dataset, headers):
+    with open(dataset) as d:
+        j = 0
+        while j < headers:
+            next(d)
+            j += 1
+        G = nx.Graph()
+        for line in d:
+            l = line.strip().split()
+            G.add_edge(l[0], l[1])
+
+    G = nx.convert_node_labels_to_integers(G, first_label=0)
+    return G
+
 def Create_Network1(dataset): ##Use if file has one header
     data = dataset
     with open(data) as df:

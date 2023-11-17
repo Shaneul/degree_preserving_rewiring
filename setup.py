@@ -1,11 +1,11 @@
 from setuptools import find_packages, setup
 
-with open("degree_preserving_rewiring/README.md", "r") as f:
+with open("README.md", "r") as f:
     long_description = f.read()
 
 setup(
     name="degree_preserving_rewiring",
-    version="0.0.10",
+    version="0.0.20",
     description="Functions to tune the assortativity of a networkx Graph while maintaining degree sequence",
     package_dir={"": "degree_preserving_rewiring"},
     packages=find_packages(where="app"),
