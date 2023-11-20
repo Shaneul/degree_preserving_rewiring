@@ -104,7 +104,7 @@ def positively_rewire_subgraph(G, target_assort, sample_size=10, timed=False, ti
     initial_assortativity = nx.degree_assortativity_coefficient(G)
     edges_rewired = 0
     loops = 0
-    successful_loops += 1
+    successful_loops = 1
     start = time.time()
     while nx.degree_assortativity_coefficient(G) < target_assort:
         E_k = 0
