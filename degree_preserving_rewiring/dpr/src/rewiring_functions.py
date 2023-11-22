@@ -213,13 +213,13 @@ def negatively_rewire(G, target_assort, sample_size, timed, time_limit):
             G.remove_edges_from(edge_sample)
             G.add_edges_from(edges_to_add)
             successful_loops += 1
-            edges_added += len(potential_edges)
+            edges_rewired += len(potential_edges)
         
         loops += 1
         if timed == True:
             time_elapsed = time.time() - start
             if time_elapsed > time_limit:
-                return G, nx.degree_assortativity_coefficient(G), time_elapsed, successful_loops, loops, edges_added
+                return G, nx.degree_assortativity_coefficient(G), time_elapsed, successful_loops, loops, edges_rewired
 
 
-    return G, nx.degree_assortativity_coefficient(G), time_elapsed, successful_loops, loops, edges_added
+    return G, nx.degree_assortativity_coefficient(G), time_elapsed, successful_loops, loops, edges_rewired
