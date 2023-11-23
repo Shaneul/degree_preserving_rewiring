@@ -247,23 +247,29 @@ def positively_rewire_test(G: nx.Graph, target_assort, sample_size = 2, timed = 
         
         list0 = []
         list1 = []
+        appearances = {}
         for edge in edges_to_remove:
-            if edges_to_remove.index(edge) == 0:
-                list0.append(edge[0])
-                list1.append(edge[1])
-            else:
-                if edge[0] in list0:
-                    list0.append(edge[0])
-                    list1.append(edge[1])
-                elif edge[0] in list1:
-                    list1.append(edge[0])
-                    list0.append(edge[1])
-                elif edge[1] in list0:
-                    list0.append(edge[1])
-                    list1.append(edge[0])
-                elif edge[1] in list1:
-                    list0.append(edge[0])
-                    list1.append(edge[1])
+            for node in edge:
+                if node in appearances:
+                    appearances[node] += 1
+                else:
+                    appearances[node] = 1
+
+        list0 = []
+        list1 = []
+
+        keys = list(appearances.keys())
+        random.shuffle(keys)
+        while len(list0) != sample_size:
+            for node in keys:
+                if len(list0) + appearances[node] <= sample_size
+                    list0.extend([node]*appearances[node])
+            if len(list0) != sample_size:
+                list0 = []
+
+        for node in appearances:
+            if node not in list0:
+                list1.extend([node]*appearances[node])
 
         list0_sorted = sorted(list0, key=deg_dict.get)
         list1_sorted = sorted(list1, key=deg_dict.get)
