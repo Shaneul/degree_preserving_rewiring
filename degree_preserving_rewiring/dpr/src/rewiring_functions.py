@@ -262,7 +262,7 @@ def positively_rewire_test(G: nx.Graph, target_assort, sample_size = 2, timed = 
         random.shuffle(keys)
         while len(list0) != sample_size:
             for node in keys:
-                if len(list0) + appearances[node] <= sample_size
+                if len(list0) + appearances[node] <= sample_size:
                     list0.extend([node]*appearances[node])
             if len(list0) != sample_size:
                 list0 = []
