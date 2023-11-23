@@ -41,7 +41,6 @@ def positively_rewire_original(G: nx.Graph, target_assort, sample_size = 2, time
     while nx.degree_assortativity_coefficient(G) < target_assort:
         edges = list(G.edges())                
         edges_to_remove = random.sample(edges, sample_size)
-        edges_to_check = [_ for _ in edges if _ not in edges_to_remove]
         deg_dict = {}
         nodes = []
         for edge in edges_to_remove:
@@ -56,12 +55,11 @@ def positively_rewire_original(G: nx.Graph, target_assort, sample_size = 2, time
         potential_edges = [[nodes_sorted[i], nodes_sorted[i+1]] for i in range(0,len(nodes_sorted),2)]
         edges_to_add = []
         for edge in potential_edges:
-            if edge not in edges_to_check:
-                if [edge[1], edge[0]] not in edges_to_check:
-                    if edge[0] != edge[1]:
-                        if [edge[1], edge[0]] not in potential_edges:
-                            if potential_edges.count(edge) == 1:
-                                edges_to_add.append(edge)
+            if G.has_edge(edge[0], edge[1]) == False:
+                if edge[0] != edge[1]:
+                    if [edge[1], edge[0]] not in potential_edges:
+                        if potential_edges.count(edge) == 1:
+                            edges_to_add.append(edge)
                 
         if len(edges_to_add) == sample_size:
             G.remove_edges_from(edges_to_remove)
