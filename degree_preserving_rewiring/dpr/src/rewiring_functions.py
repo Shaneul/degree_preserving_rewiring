@@ -231,6 +231,9 @@ def positively_rewire_test(G: nx.Graph, target_assort, sample_size = 2, timed = 
     edges_rewired = 0
     successful_loops = 0
     loops = 0
+    duplicate_edge_count = 0
+    reverse_edge_count = 0
+    self_edge_count = 0
     time_elapsed = 0
     E_k = 0
     G_edges = list(G.edges())
@@ -287,7 +290,15 @@ def positively_rewire_test(G: nx.Graph, target_assort, sample_size = 2, timed = 
                         if [edge[1], edge[0]] not in potential_edges:
                             if potential_edges.count(edge) == 1:
                                 edges_to_add.append(edge)
-                
+                            else:
+                                duplicate_edge_count += 1
+                                break
+                        else:
+                            reverse_edge_count += 1
+                            break
+                    else:
+                        self_edge_count += 1
+                        break
         if len(edges_to_add) == sample_size:
             G.add_edges_from(edges_to_add)
             edges_rewired += sample_size
@@ -299,8 +310,8 @@ def positively_rewire_test(G: nx.Graph, target_assort, sample_size = 2, timed = 
         if timed == True:
             if time_elapsed > time_limit:
                 if nx.degree_assortativity_coefficient(G) < target_assort:
-                    return G, nx.degree_assortativity_coefficient(G), time_elapsed, successful_loops, loops, edges_rewired
+                    return G, nx.degree_assortativity_coefficient(G), time_elapsed, successful_loops, loops, edges_rewired, duplicate_edge_count, reverse_edge_count, self_edge_count
 
 #    print(f'Took {loops} iterations with sample size {sample_size}. Had {repeated_edge_fails} loops where the same edge was picked twice. Tried to add an existing edge {has_edge_fails} times')
-    return G, nx.degree_assortativity_coefficient(G), time_elapsed, successful_loops, loops, edges_rewired
+    return G, nx.degree_assortativity_coefficient(G), time_elapsed, successful_loops, loops, edges_rewired, duplicate_edge_count, reverse_edge_count, self_edge_count
 
