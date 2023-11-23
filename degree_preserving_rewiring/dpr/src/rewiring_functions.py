@@ -302,6 +302,7 @@ def positively_rewire_test(G: nx.Graph, target_assort, sample_size = 2, timed = 
                         break
                 else:
                     has_edge_fails += 1
+                    break
         if len(edges_to_add) == sample_size:
             G.add_edges_from(edges_to_add)
             edges_rewired += sample_size
