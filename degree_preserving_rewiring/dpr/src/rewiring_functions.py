@@ -255,13 +255,13 @@ def positively_rewire_test(G: nx.Graph, target_assort, sample_size = 2, timed = 
                 if edge[0] in list0:
                     list0.append(edge[0])
                     list1.append(edge[1])
-                else if edge[0] in list1:
+                elif edge[0] in list1:
                     list1.append(edge[0])
                     list0.append(edge[1])
-                else if edge[1] in list0:
+                elif edge[1] in list0:
                     list0.append(edge[1])
                     list1.append(edge[0])
-                else if edge[1] in list1:
+                elif edge[1] in list1:
                     list0.append(edge[0])
                     list1.append(edge[1])
 
