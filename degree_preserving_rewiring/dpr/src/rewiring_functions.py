@@ -232,6 +232,10 @@ def positively_rewire_test(G: nx.Graph, target_assort, sample_size = 2, timed = 
     successful_loops = 0
     loops = 0
     time_elapsed = 0
+    E_k = 0
+    G_edges = list(G.edges())
+    for e in G_edges:
+        E_k += G.degree(e[0]) + G.degree(e[1])
     while nx.degree_assortativity_coefficient(G) < target_assort:
         edges = list(G.edges())                
         edges_to_remove = random.sample(edges, sample_size)
@@ -255,29 +259,25 @@ def positively_rewire_test(G: nx.Graph, target_assort, sample_size = 2, timed = 
                 else:
                     appearances[node] = 1
 
-        list0 = []
-        list1 = []
+        low_degree_nodes = []
+        high_degree_nodes = []
 
         keys = list(appearances.keys())
-        random.shuffle(keys)
-        while len(list0) != sample_size:
-            for node in keys:
-                if len(list0) + appearances[node] <= sample_size:
-                    list0.extend([node]*appearances[node])
-            if len(list0) != sample_size:
-                list0 = []
+        for node in keys:
+            if deg_dict[node] <= E_k:
+                low_degree_nodes.extend([node] * appearances[node])
+            else:
+                high_degree_nodes.extend([node] * appearances[node])
+  
+        if len(low_degree_nodes)%2 != 0:
+            high_degree_nodes.append(low_degree_nodes[0])
+            del(low_degree_nodes[0])
+        random.shuffle(low_degree_nodes)
+        random.shuffle(high_degree_nodes)
 
-        for node in appearances:
-            if node not in list0:
-                list1.extend([node]*appearances[node])
 
-        list0_sorted = sorted(list0, key=deg_dict.get)
-        list1_sorted = sorted(list1, key=deg_dict.get)
-        try:
-            potential_edges = [[list0_sorted[i], list1_sorted[i]] for i in range(0,len(list0))]
-        except IndexError:
-            potential_edges = []
-
+        potential_edges = [[low_degree_nodes[i], low_degree_nodes[i+1]] for i in range(0,len(low_degree_nodes), 2)]
+        potential_edges.extend(high_degree_nodes[i], high_degree_nodes[i+1]] for i in range(0, len(high_degree_nodes), 2))
         edges_to_add = []
         G.remove_edges_from(edges_to_remove)
         if len(potential_edges) > 0:
