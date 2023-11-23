@@ -277,7 +277,7 @@ def positively_rewire_test(G: nx.Graph, target_assort, sample_size = 2, timed = 
 
 
         potential_edges = [[low_degree_nodes[i], low_degree_nodes[i+1]] for i in range(0,len(low_degree_nodes), 2)]
-        potential_edges.extend(high_degree_nodes[i], high_degree_nodes[i+1]] for i in range(0, len(high_degree_nodes), 2))
+        potential_edges.extend([[high_degree_nodes[i], high_degree_nodes[i+1]] for i in range(0, len(high_degree_nodes), 2)])
         edges_to_add = []
         G.remove_edges_from(edges_to_remove)
         if len(potential_edges) > 0:
