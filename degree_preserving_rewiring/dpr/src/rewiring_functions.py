@@ -54,6 +54,7 @@ def positively_rewire_original(G: nx.Graph, target_assort, sample_size = 2, time
             
         potential_edges = [[nodes_sorted[i], nodes_sorted[i+1]] for i in range(0,len(nodes_sorted),2)]
         edges_to_add = []
+        G.remove_edges_from(edges_to_remove)
         for edge in potential_edges:
             if G.has_edge(edge[0], edge[1]) == False:
                 if edge[0] != edge[1]:
@@ -62,11 +63,11 @@ def positively_rewire_original(G: nx.Graph, target_assort, sample_size = 2, time
                             edges_to_add.append(edge)
                 
         if len(edges_to_add) == sample_size:
-            G.remove_edges_from(edges_to_remove)
             G.add_edges_from(edges_to_add)
             edges_rewired += sample_size
             successful_loops += 1
-
+        else:
+            G.add_edges_from(edges_to_remove)
         loops += 1 
         time_elapsed = time.time() - start
         if timed == True:

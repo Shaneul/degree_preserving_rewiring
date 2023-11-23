@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: degree-preserving-rewiring
-Version: 0.0.40
+Version: 0.0.50
 Summary: Functions to tune the assortativity of a networkx Graph while maintaining degree sequence
 Home-page: 
 Author: Shane Mannion
