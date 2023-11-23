@@ -224,3 +224,77 @@ def negatively_rewire(G, target_assort, sample_size, timed, time_limit):
 
 
     return G, nx.degree_assortativity_coefficient(G), time_elapsed, successful_loops, loops, edges_rewired
+
+
+def positively_rewire_test(G: nx.Graph, target_assort, sample_size = 2, timed = False, time_limit=600):
+    start = time.time()
+    edges_rewired = 0
+    successful_loops = 0
+    loops = 0
+    time_elapsed = 0
+    while nx.degree_assortativity_coefficient(G) < target_assort:
+        edges = list(G.edges())                
+        edges_to_remove = random.sample(edges, sample_size)
+        deg_dict = {}
+        nodes = []
+        for edge in edges_to_remove:
+            for node in edge:
+                nodes.append(node)
+                deg_dict[node] = G.degree(node)
+    
+                    
+        nodes_sorted = sorted(nodes, key=deg_dict.get)
+        
+        list0 = []
+        list1 = []
+        for edge in edges_to_remove:
+            if edges_to_remove.index(edge) == 0:
+                list0.append(edge[0])
+                list1.append(edge[1])
+            else:
+                if edge[0] in list0:
+                    list0.append(edge[0])
+                    list1.append(edge[1])
+                else if edge[0] in list1:
+                    list1.append(edge[0])
+                    list0.append(edge[1])
+                else if edge[1] in list0:
+                    list0.append(edge[1])
+                    list1.append(edge[0])
+                else if edge[1] in list1:
+                    list0.append(edge[0])
+                    list1.append(edge[1])
+
+        list0_sorted = sorted(list0, key=deg_dict.get)
+        list1_sorted = sorted(list1, key=deg_dict.get)
+        try:
+            potential_edges = [[list0_sorted[i], list1_sorted[i]] for i in range(0,len(list0))]
+        except IndexError:
+            potential_edges = []
+
+        edges_to_add = []
+        G.remove_edges_from(edges_to_remove)
+        if len(potential_edges) > 0:
+            for edge in potential_edges:
+                if G.has_edge(edge[0], edge[1]) == False:
+                    if edge[0] != edge[1]:
+                        if [edge[1], edge[0]] not in potential_edges:
+                            if potential_edges.count(edge) == 1:
+                                edges_to_add.append(edge)
+                
+        if len(edges_to_add) == sample_size:
+            G.add_edges_from(edges_to_add)
+            edges_rewired += sample_size
+            successful_loops += 1
+        else:
+            G.add_edges_from(edges_to_remove)
+        loops += 1 
+        time_elapsed = time.time() - start
+        if timed == True:
+            if time_elapsed > time_limit:
+                if nx.degree_assortativity_coefficient(G) < target_assort:
+                    return G, nx.degree_assortativity_coefficient(G), time_elapsed, successful_loops, loops, edges_rewired
+
+#    print(f'Took {loops} iterations with sample size {sample_size}. Had {repeated_edge_fails} loops where the same edge was picked twice. Tried to add an existing edge {has_edge_fails} times')
+    return G, nx.degree_assortativity_coefficient(G), time_elapsed, successful_loops, loops, edges_rewired
+
