@@ -381,7 +381,7 @@ def rewire_positive(G: nx.Graph, target_assort, sample_size = 2, timed = False, 
                     potential_edges.append([node, target])
                     current_degree[node] += 1
                     current_degree[target] += 1
-         
+                ind += 1
 
         G.remove_edges_from(edges_to_remove)
         if len(potential_edges) > 0:
