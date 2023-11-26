@@ -57,8 +57,9 @@ def rewire(G, target_assortativity, sample_size = 2, timed = False, time_limit=6
                  'existing_edges': 0, 
                  'preserved': True}
     
-    results = pd.DataFrame(first_row)
+    results = pd.DataFrame([first_row])
 
+    before = degree_list(G)
     if nx.degree_assortativity_coefficient(G) < target_assortativity:
       if method == 'new':
         G, results = rewire_positive_full(G, results)
@@ -72,8 +73,23 @@ def rewire(G, target_assortativity, sample_size = 2, timed = False, time_limit=6
       if method == 'original':
         G, results = negatively_rewire(G, target_assortativity, results, sample_size, timed, time_limit)
 
+    after = degree_list(G)
     #we now have a dataframe of all of our relevant results
+    summary_row = {'iteration': results.loc[results.index[-1], 'iteration'], 
+                   'time': results['time'].sum(), 
+                   'r': nx.degree_assortativity_coefficient(G),
+                   'target_r': target_assortativity, 
+                   'sample_size': sample_size, 
+                   'edges_rewired': results['edges_rewired'].sum(),
+                   'duplicate_edges': results['duplicate_edges'].sum(), 
+                   'self_edges': results['self_edges'].sum(),
+                   'existing_edges': results['existing_edges'].sum(), 
+                   'preserved': list(before) == list(after)}
 
+    results.loc[len(results)] = summary_row
+
+    return G, results
+    
 def degree_list(G):
     """
     Parameters
