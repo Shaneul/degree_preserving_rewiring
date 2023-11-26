@@ -33,8 +33,11 @@ def rewire(G, target_assortativity, sample_size = 2, timed = False, time_limit=6
         columns:
         iteration : number of loops completed so far (unsuccessful loops included)
         time : time taken for the current loop
-        r : assortativity of the graph at the current iteration
+        r : assortativity of the graph at the END of the current iteration
         sample_size : number of edges being selected at each iteration
+                      N.B. The first loop will have a sample size = to the number of edges
+                      but the row will be given the sample_size value of the succeeding rows
+                      to allow for easy grouping
         edges_selected : cumulative number of edges sampled (unnsuccessful loops included)
         edges_rewired : cumulative number of edges rewired 
         duplicate_edges : The number of duplicate edges in the list of potential edges (one edge appearing twice = 1 here)
@@ -43,12 +46,20 @@ def rewire(G, target_assortativity, sample_size = 2, timed = False, time_limit=6
         preserved : If the degree_list has been preserved (only present in first and last rows)
     """
 
+    first_row = {'iteration': 0, 
+                 'time': 0, 
+                 'r': nx.degree_assortativity_coefficient(G),
+                 'target_r': target_assortativity, 
+                 'sample_size': sample_size, 
+                 'edges_rewired': 0,
+                 'duplicate_edges': 0, 
+                 'self_edges': 0,
+                 'existing_edges': 0, 
+                 'preserved': True}
+    
+    results = pd.DataFrame(first_row)
 
-    results = pd.DataFrame(columns = ['iteration', 'time', 'r', 'sample_size',
-                                      'edges_selected', 'edges_rewired', 'duplicate_edges', 
-                                      'self_edges', 'existing_edges', 'preserved'])
-
-    results.loc[len(results)] = [0, 0, nx.degree_assortativity_coefficient(G), sample_size, 0,0,0,0,0,True]
+    #results.loc[len(results)] = first_row
 
     if nx.degree_assortativity_coefficient(G) < target_assortativity:
         rewire_positive_full(G, results)
@@ -75,13 +86,65 @@ def degree_list(G):
     degree_list.sort()
     return np.array(degree_list)
 
-def positively_rewire(G: nx.Graph, target_assort, sample_size = 2, timed = False, time_limit=600):
-    start = time.time()
-    edges_rewired = 0
-    successful_loops = 0
-    loops = 0
-    time_elapsed = 0
-    while nx.degree_assortativity_coefficient(G) < target_assort:
+def check_new_edges(potential_edges, G, row):
+    """
+    Takes the edges that will be potentially added to the Graph and checks
+    for any issues
+    Parameters
+    ---------
+    potential_edges : list of lists
+        the edges to be checked
+    
+    G : networkx.Graph
+        graph needed to check if any potential edges exist already
+
+    row : the row to be added to the results DataFrame is edited here
+
+    Returns
+    -------
+    edges_to_add : list of lists
+        the checked edges
+
+    row : dict
+        the information to go into the results DataFrame
+
+    """
+    edges_to_add = []
+    for edge in potential_edges:
+        if G.has_edge(edge[0], edge[1]) == False:
+            if edge[0] != edge[1]:
+                if [edge[1], edge[0]] not in potential_edges:
+                    if potential_edges.count(edge) == 1:
+                        edges_to_add.append(edge)
+                    else:
+                        row['duplicate_edges'] += 0.5
+                else:
+                    row['duplicate_edges'] += 0.5
+            else:
+                row['self_edges'] += 1
+        else:
+            row['existing_edges'] += 1
+
+    return edges_to_add, row 
+
+def positively_rewire(G: nx.Graph, target_assortativity, results, sample_size = 2, timed = False, time_limit=600):
+    alg_start = time.time()
+    itr = 0
+    while nx.degree_assortativity_coefficient(G) < target_assortativity:
+        loop_start = time.time()
+        itr += 1
+        #define dictionary to track relevant info for each loop
+        row = {'iteration' : itr, 
+               'time' : 0, 
+               'r' : 0,
+               'target_r': target_assortativity
+               'sample_size': sample_size, 
+               'edges_rewired': 0,
+               'duplicate_edges': 0, 
+               'self_edges': 0,
+               'existing_edges': 0, 
+               'preserved': True}
+
         edges = list(G.edges())                
         edges_to_remove = random.sample(edges, sample_size)
         deg_dict = {}
@@ -91,34 +154,29 @@ def positively_rewire(G: nx.Graph, target_assort, sample_size = 2, timed = False
                 nodes.append(node)
                 deg_dict[node] = G.degree(node)
     
-                    
         nodes_sorted = sorted(nodes, key=deg_dict.get)
-    
-            
         potential_edges = [[nodes_sorted[i], nodes_sorted[i+1]] for i in range(0,len(nodes_sorted),2)]
-        edges_to_add = []
-        G.remove_edges_from(edges_to_remove)
-        for edge in potential_edges:
-            if G.has_edge(edge[0], edge[1]) == False:
-                if edge[0] != edge[1]:
-                    if [edge[1], edge[0]] not in potential_edges:
-                        if potential_edges.count(edge) == 1:
-                            edges_to_add.append(edge)
+        edges_to_add, row = check_new_edges(potential_edges, G, row)
                 
         if len(edges_to_add) == sample_size:
             G.add_edges_from(edges_to_add)
-            edges_rewired += sample_size
-            successful_loops += 1
+            row['edges_rewired'] += sample_size
         else:
             G.add_edges_from(edges_to_remove)
-        loops += 1 
-        time_elapsed = time.time() - start
+
+        row['time'] += time.time() - start
+        row['r'] = nx.degree_assortativity_coefficient(G)
+        results.loc[len(results)] = row
+
+        time_elapsed = time.time() - alg_start
+    
+        
         if timed == True:
             if time_elapsed > time_limit:
                 if nx.degree_assortativity_coefficient(G) < target_assort:
-                    return G, nx.degree_assortativity_coefficient(G), time_elapsed, successful_loops, loops, edges_rewired
+                    return G, results
 
-    return G, nx.degree_assortativity_coefficient(G), time_elapsed, successful_loops, loops, edges_rewired
+    return G, results
 
 
 def negatively_rewire(G, target_assort, sample_size, timed, time_limit):
@@ -165,17 +223,6 @@ def negatively_rewire(G, target_assort, sample_size, timed, time_limit):
 
 
     return G, nx.degree_assortativity_coefficient(G), time_elapsed, successful_loops, loops, edges_rewired
-
-def check_new_edges(potential_edges, G):
-    edges_to_add = []
-    for edge in potential_edges:
-        if G.has_edge(edge[0], edge[1]) == False:
-            if edge[0] != edge[1]:
-                if [edge[1], edge[0]] not in potential_edges:
-                    if potential_edges.count(edge) == 1:
-                        edges_to_add.append(edge)
-
-    return edges_to_add
 
 def rewire_positive_full(G: nx.Graph, results):
     
