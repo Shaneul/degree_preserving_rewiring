@@ -67,12 +67,17 @@ def rewire(G, target_assortativity, sample_size = 2, timed = False, time_limit=6
         G, results = negatively_rewire(G, target_assortativity, results, sample_size, timed, time_limit)
       if method == 'original':
         G, results = positively_rewire(G, target_assortativity, results, sample_size, timed, time_limit)
+      if method == 'max':
+        G, results = rewire_positive_full(G, results, sample_size)
+
     else:
       if method == 'new':
         G, results = rewire_negative_full(G, results, sample_size)
         G, results = positively_rewire(G, target_assortativity, results, sample_size, timed, time_limit)
       if method == 'original':
         G, results = negatively_rewire(G, target_assortativity, results, sample_size, timed, time_limit)
+      if method == 'max':
+        G, results = rewire_negative_full(G, results, sample_size)
 
     after = degree_list(G)
     #we now have a dataframe of all of our relevant results
@@ -112,7 +117,9 @@ def degree_list(G):
     else:
         degree_list = G
     degree_list.sort()
+
     return np.array(degree_list)
+
 
 
 def check_new_edges(potential_edges, G, row):
@@ -156,7 +163,41 @@ def check_new_edges(potential_edges, G, row):
 
     return edges_to_add, row 
 
-def positively_rewire(G: nx.Graph, target_assortativity, results, sample_size = 2, timed = False, time_limit=600):
+
+
+def positively_rewire(G: nx.Graph, target_assortativity, results, sample_size = 2, timed = True, time_limit=600):
+    """
+    Function for fine tuning the assortativity value of a graph.
+    
+    Parameters
+    ----------
+    G: nx.Graph
+      Graph to be rewired
+
+    target_assortativity: double
+      desired assortativity value
+
+    results: pandas.DataFrame
+      DataFrame to be added to. One row per iteration. Must have columns as in rewire function
+
+    sample_size: int
+      number of edges to be rewired per iteration. The default is 2
+
+    timed: bool
+      whether or not to stop the algorithm after a certain amount of time. The default is True
+
+    time_limit: double
+      time after which to stop iterating. The default is 600 seconds.
+
+    Returns
+    -------
+    G: nx.Graph
+      rewired graph
+
+    results: pandas.DataFrame
+      DataFrame of results, one line per iteration
+    """
+
     alg_start = time.time()
     itr = 1
     while nx.degree_assortativity_coefficient(G) < target_assortativity:
@@ -209,10 +250,43 @@ def positively_rewire(G: nx.Graph, target_assortativity, results, sample_size = 
     return G, results
 
 
+
 def negatively_rewire(G: nx.Graph, target_assortativity, results, sample_size = 2, timed = False, time_limit=600):
+    
+    """
+    Function for fine tuning the assortativity value of a graph.
+    
+    Parameters
+    ----------
+    G: nx.Graph
+      Graph to be rewired
+
+    target_assortativity: double
+      desired assortativity value
+
+    results: pandas.DataFrame
+      DataFrame to be added to. One row per iteration. Must have columns as in rewire function
+
+    sample_size: int
+      number of edges to be rewired per iteration. The default is 2
+
+    timed: bool
+      whether or not to stop the algorithm after a certain amount of time. The default is True
+
+    time_limit: double
+      time after which to stop iterating. The default is 600 seconds.
+
+    Returns
+    -------
+    G: nx.Graph
+      rewired graph
+
+    results: pandas.DataFrame
+      DataFrame of results, one line per iteration
+    """
+    
     alg_start = time.time()
     itr = 0
-    before = degree_list(G)
     while nx.degree_assortativity_coefficient(G) > target_assortativity:
         loop_start = time.time()
         itr += 1
@@ -254,9 +328,7 @@ def negatively_rewire(G: nx.Graph, target_assortativity, results, sample_size = 
         row['time'] += time.time() - loop_start
         row['r'] = nx.degree_assortativity_coefficient(G)
         results.loc[len(results)] = row
-
         time_elapsed = time.time() - alg_start
-    
         
         if timed == True:
             if time_elapsed > time_limit:
@@ -264,7 +336,308 @@ def negatively_rewire(G: nx.Graph, target_assortativity, results, sample_size = 
 
     return G, results
 
+
+
+def rewire_negative_full(G: nx.Graph, results, sample_size):
+    """
+    removes every edge from the graph and adds them back ordered in such a way
+    to minimise the assortativity.
+
+    Parameters:
+    -----------
+      G: nx.Graph
+        graph to be rewired
+
+      results: pandas.DataFrame
+        results dataframe to be passed to function requiring the columns assigned
+        in the rewiring function above
+
+      sample_size: int
+        number of edges to be rewired. Relevant only for passing the result of this 
+        function to another
+
+    Returns:
+    --------
+      G: nx.Graph
+        rewired graph
+
+      results: pandas.DataFrame
+        results dataframe passed to the function with one row added per algorithm
+        iteration
+    """
+    before = degree_list(G)    
+    start = time.time()    
+    edges_to_remove = list(G.edges())                
+    
+    #record the orginal degree of each node
+    original_degree = {}
+    nodes_descending = []
+    nodes_ascending = []
+    for edge in edges_to_remove:
+        for node in edge:
+            if node not in nodes_ascending:
+                nodes_ascending.append(node)
+                nodes_descending.append(node)
+            original_degree[node] = G.degree(node)
+    
+    #sort nodes in descending order of degree
+    nodes_descending = sorted(nodes_descending, key=original_degree.get, reverse=True)
+    nodes_ascending = sorted(nodes_ascending, key=original_degree.get, reverse=False)
+
+    row = {'iteration' : 1, 
+           'time' : 0, 
+           'r' : 0,
+           'target_r': 0,
+           'sample_size': sample_size, 
+           'edges_rewired': 0,
+           'duplicate_edges': 0, 
+           'self_edges': 0,
+           'existing_edges': 0, 
+           'preserved': True,
+           'summary': 0}
+
+    #dictionary in which to record the current degree of the nodes as we add edges 
+    new_neighbors = {}
+    for node in original_degree:
+        new_neighbors[node] = set() #original_degree[node] - appearances[node]
+
+    potential_edges = []
+    for node in nodes_descending:
+        for j in range(len(nodes_ascending)):
+            target = nodes_ascending[j]
+            if len(new_neighbors[node]) < original_degree[node]:
+                if len(new_neighbors[target]) < original_degree[target]:
+                    if node != target:
+                        new_neighbors[node].add(target)
+                        new_neighbors[target].add(node)
+    
+    edges_to_add = []
+    for node in new_neighbors:
+        for target in new_neighbors[node]:
+            edges_to_add.append([node, target])
+    
+    G.remove_edges_from(edges_to_remove)
+    G.add_edges_from(edges_to_add)
+    row['edges_rewired'] += len(edges_to_add) 
+    edges = list(G.edges())
+    
+    success = True
+    for node in original_degree:
+        if G.degree(node) < original_degree[node]:
+            success = False
+
+    while success == False:
+        affected_nodes = []
+        total_degree = 0
+        missing_degree = {}
+        for node in original_degree:
+            if G.degree(node) != original_degree[node]:
+                missing_degree[node] = original_degree[node] - G.degree(node)
+                affected_nodes.append(node)
+   
+        for node in affected_nodes:
+            available_edges = 0
+            for target in affected_nodes:
+                if target != node:
+                    if target not in new_neighbors[node]:
+                        available_edges += 1
+    
+        stubs1 = []
+        stubs2 = []
+        for node in missing_degree:
+            j = 0
+            while j < missing_degree[node]:
+                stubs1.append(node)
+                j += 1
+       
+       edges = list(G.edges())
+        while len(stubs2) < len(stubs1):
+            edge_to_remove = random.choice(edges)
+            if edge_to_remove[0] not in stubs1:
+                if edge_to_remove[1] not in stubs1:
+                    if G.has_edge(edge_to_remove[0], edge_to_remove[1]) == True:
+                        stubs2.append(edge_to_remove[0])
+                        stubs2.append(edge_to_remove[1])
+                        G.remove_edge(edge_to_remove[0], edge_to_remove[1])
+            edges.remove(edge_to_remove)
+
+        stubs1 = sorted(stubs1, key = original_degree.get, reverse=False)
+        stubs2 = sorted(stubs2, key = original_degree.get, reverse=True)
+        for u, v in zip(stubs1, stubs2):
+            G.add_edge(u, v)
+            row['edges_rewired'] += 1 
+        
+        fails = 0
+        for node in original_degree:
+            if G.degree(node) != original_degree[node]:
+                fails += 1
+        
+        if fails > 0:
+            success = False
+        else:
+            success = True
+        
+    row['r'] += nx.degree_assortativity_coefficient(G)
+    row['time'] += time.time() - start
+    after = degree_list(G)
+    row['preserved'] = list(before) == list(after)
+    results.loc[len(results)] = row
+    
+    return G, results
+
+
+
 def rewire_positive_full(G: nx.Graph, results, sample_size):
+    """
+    removes every edge from the graph and adds them back ordered in such a way
+    to maximise the assortativity.
+
+    Parameters:
+      G: nx.Graph
+        graph to be rewired
+
+      results: pandas.DataFrame
+        results dataframe to be passed to function requiring the columns assigned
+        in the rewiring function above
+
+      sample_size: int
+        number of edges to be rewired. Relevant only for passing the result of this 
+        function to another
+    
+    Returns:
+    --------
+      G: nx.Graph
+        rewired graph
+
+      results: pandas.DataFrame
+        results dataframe passed to the function with one row added per algorithm
+        iteration
+    """
+    
+    before = degree_list(G)    
+    start = time.time()    
+    edges_to_remove = list(G.edges())                
+    
+    #record the orginal degree of each node
+    original_degree = {}
+    nodes = []
+    for edge in edges_to_remove:
+        for node in edge:
+            if node not in nodes:
+                nodes.append(node)
+            original_degree[node] = G.degree(node)
+    
+    #sort nodes in descending order of degree
+    nodes = sorted(nodes, key=original_degree.get, reverse=True)
+
+    row = {'iteration' : 1, 
+           'time' : 0, 
+           'r' : 0,
+           'target_r': 0,
+           'sample_size': sample_size, 
+           'edges_rewired': 0,
+           'duplicate_edges': 0, 
+           'self_edges': 0,
+           'existing_edges': 0, 
+           'preserved': True,
+           'summary': 0}
+
+    #dictionary in which to record the current neighbors of the nodes as we add edges 
+    new_neighbors = {}
+    for node in original_degree:
+        new_neighbors[node] = set()
+
+
+    potential_edges = []
+    for ind, node in enumerate(nodes):
+        for target in nodes[ind:]:
+            if len(new_neighbors[node]) < original_degree[node]:
+                if len(new_neighbors[target]) < original_degree[target]:
+                    if node != target:
+                        new_neighbors[node].add(target)
+                        new_neighbors[target].add(node)
+    
+    edges_to_add = []
+    for node in new_neighbors:
+        for target in new_neighbors[node]:
+            edges_to_add.append([node, target])
+    G.remove_edges_from(edges_to_remove)
+    G.add_edges_from(edges_to_add)
+    row['edges_rewired'] += len(edges_to_add)
+    edges = list(G.edges())
+    
+    #check to ensure that we have maintained the degree sequence
+    success = True
+    for node in original_degree:
+        if G.degree(node) < original_degree[node]:
+            success = False
+
+    #if degree sequence has not been maintained, find the nodes with incorrect
+    #degree and remove edges to rewire to them
+    
+    while success == False:
+        affected_nodes = []
+        total_degree = 0
+        missing_degree = {}
+        
+        for node in original_degree:
+            if G.degree(node) != original_degree[node]:
+                missing_degree[node] = original_degree[node] - G.degree(node)
+                affected_nodes.append(node)
+        
+        for node in affected_nodes:
+            available_edges = 0
+            for target in affected_nodes:
+                if target != node:
+                    if target not in new_neighbors[node]:
+                        available_edges += 1
+    
+        stubs1 = []
+        stubs2 = []
+        for node in missing_degree:
+            j = 0
+            while j < missing_degree[node]:
+                stubs1.append(node)
+                j += 1
+
+        edges = list(G.edges())
+        while len(stubs2) < len(stubs1):
+            edge_to_remove = random.choice(edges)
+            if edge_to_remove[0] not in stubs1:
+                if edge_to_remove[1] not in stubs1:
+                    if G.has_edge(edge_to_remove[0], edge_to_remove[1]) == True:
+                        stubs2.append(edge_to_remove[0])
+                        stubs2.append(edge_to_remove[1])
+                        G.remove_edge(edge_to_remove[0], edge_to_remove[1])
+            edges.remove(edge_to_remove)
+
+        stubs1 = sorted(stubs1, key = original_degree.get, reverse=False)
+        stubs2 = sorted(stubs2, key = original_degree.get, reverse=False)
+        for u, v in zip(stubs1, stubs2):
+            G.add_edge(u, v)
+            row['edges_rewired'] += 1
+        
+        fails = 0
+        for node in original_degree:
+            if G.degree(node) != original_degree[node]:
+                fails += 1
+        
+        if fails > 0:
+            success = False
+        else:
+            success = True
+    
+    row['r'] += nx.degree_assortativity_coefficient(G)
+    row['time'] += time.time() - start
+    after = degree_list(G)
+    row['preserved'] = list(before) == list(after)
+    results.loc[len(results)] = row
+    
+    return G, results
+
+
+
+def rewire_positive_full_deprecated(G: nx.Graph, results, sample_size):
     
     start = time.time()    
     edges_to_remove = list(G.edges())                
@@ -326,219 +699,3 @@ def rewire_positive_full(G: nx.Graph, results, sample_size):
     row['time'] += time.time() - start
     results.loc[len(results)] = row
     return G, results
-
-
-def rewire_negative_full(G: nx.Graph, results, sample_size):
-    before = degree_list(G)    
-    print(f'Has {len(G.edges())} to start')
-    start = time.time()    
-    edges_to_remove = list(G.edges())                
-    #record the orginal degree of each node
-    original_degree = {}
-    nodes_descending = []
-    nodes_ascending = []
-    for edge in edges_to_remove:
-        for node in edge:
-            if node not in nodes_ascending:
-                nodes_ascending.append(node)
-                nodes_descending.append(node)
-            original_degree[node] = G.degree(node)
-    
-    #sort nodes in descending order of degree
-    nodes_descending = sorted(nodes_descending, key=original_degree.get, reverse=True)
-    nodes_ascending = sorted(nodes_ascending, key=original_degree.get, reverse=False)
-
-    row = {'iteration' : 1, 
-           'time' : 0, 
-           'r' : 0,
-           'target_r': 0,
-           'sample_size': sample_size, 
-           'edges_rewired': 0,
-           'duplicate_edges': 0, 
-           'self_edges': 0,
-           'existing_edges': 0, 
-           'preserved': True,
-           'summary': 0}
-
-    #dictionary in which to record the current degree of the nodes as we add edges 
-    new_neighbors = {}
-    for node in original_degree:
-        new_neighbors[node] = set() #original_degree[node] - appearances[node]
-
-    potential_edges = []
-    for node in nodes_descending:
-        for j in range(len(nodes_ascending)):
-            target = nodes_ascending[j]
-            if len(new_neighbors[node]) < original_degree[node]:
-                if len(new_neighbors[target]) < original_degree[target]:
-                    if node != target:
-                        new_neighbors[node].add(target)
-                        new_neighbors[target].add(node)
-    affected_nodes = []
-#    affected_edges = 0
-    total_degree = 0
-    missing_degree = {}
-    for node in new_neighbors:
-        if len(new_neighbors[node]) != original_degree[node]:
-            total_degree += original_degree[node] - len(new_neighbors[node])
-            missing_degree[node] = original_degree[node] - len(new_neighbors[node])
-            affected_nodes.append(node)
-            print(node, len(new_neighbors[node]), original_degree[node])
-
-#
-#    for node in affected_nodes:
-#        while len(new_neighbors[node]) < original_degree[node]:
-#            target = random.choice(affected_nodes)
-#            if target != node:
-#                new_neighbors[node].add(target)
-#                new_neighbors[target].add(node)
-#    
-    edges_to_add = []
-    for node in new_neighbors:
-        for target in new_neighbors[node]:
-            edges_to_add.append([node, target])
-    G.remove_edges_from(edges_to_remove)
-    G.add_edges_from(edges_to_add)
-    edges = list(G.edges())
-    
-    success = True
-    for node in original_degree:
-        if G.degree(node) < original_degree[node]:
-            success = False
-    while success == False:
-        affected_nodes = []
-#    affected_edges = 0
-        total_degree = 0
-        missing_degree = {}
-        for node in original_degree:
-            if G.degree(node) != original_degree[node]:
-                missing_degree[node] = original_degree[node] - G.degree(node)
-                affected_nodes.append(node)
-   
-        for node in affected_nodes:
-            available_edges = 0
-            for target in affected_nodes:
-                if target != node:
-                    if target not in new_neighbors[node]:
-                        available_edges += 1
-    
-        stubs1 = []
-        stubs2 = []
-        for node in missing_degree:
-            j = 0
-            while j < missing_degree[node]:
-                stubs1.append(node)
-                j += 1
-        edges = list(G.edges())
-        print(f'G currently has {len(edges)} edges')
-        while len(stubs2) < len(stubs1):
-            edge_to_remove = random.choice(edges)
-            if edge_to_remove[0] not in stubs1:
-                if edge_to_remove[1] not in stubs1:
-                    if G.has_edge(edge_to_remove[0], edge_to_remove[1]) == True:
-                        stubs2.append(edge_to_remove[0])
-                        stubs2.append(edge_to_remove[1])
-                        G.remove_edge(edge_to_remove[0], edge_to_remove[1])
-                        print(f'found {len(stubs2)} nodes out of {len(stubs1)}')
-            edges.remove(edge_to_remove)
-        for u, v in zip(stubs1, stubs2):
-            G.add_edge(u, v)
-        fails = 0
-        for node in original_degree:
-            if G.degree(node) != original_degree[node]:
-                fails += 1
-        if fails > 0:
-            success = False
-        else:
-            success = True
-#    n_problematic_edges = total_degree/2
-#    for ind, node in enumerate(affected_nodes):
-#        while len(new_neighbors[node]) < original_degree[node]:
-#            target = random.choice(affected_nodes[ind:])
-#            if target != node:
-#                if target not in new_neighbors[node]:
-#                    G.add_edge(node, target)
-#                    new_neighbors[node].add(target)
-#        print(f'fixed {ind} nodes out of {len(affected_nodes)}')
-#    success = True
-#    for node in new_neighbors:
-#        if len(new_neighbors[node]) < original_degree[node]:
-#            success = False
-#            print('failure caught')
-#    while success == False:
-#        
-#    affected_nodes = []
-#    missing_degree = {}
-#    for node in new_neighbors:
-#        if len(new_neighbors[node]) != original_degree[node]:
-#            total_degree += original_degree[node] - len(new_neighbors[node])
-#            missing_degree[node] = original_degree[node] - len(new_neighbors[node])
-#            affected_nodes.append(node)
-#    stubs1 = []
-#    stubs2 = []
-#    for node in missing_degree:
-#        j = 0
-#        while j < missing_degree[node]:
-#            stubs1.append(node)
-#            j += 1
-#    edges = list(G.edges())
-#    print(f'G currently has {len(edges)} edges')
-#    while len(stubs2) < len(stubs1):
-#        edge_to_remove = random.choice(edges)
-#        if edge_to_remove[0] not in stubs1:
-#            if edge_to_remove[1] not in stubs1:
-#                if G.has_edge(edge_to_remove[0], edge_to_remove[1]) == True:
-#                    stubs2.append(edge_to_remove[0])
-#                    stubs2.append(edge_to_remove[1])
-#                    G.remove_edge(edge_to_remove[0], edge_to_remove[1])
-#                    print(f'found {len(stubs2)} nodes out of {len(stubs1)}')
-#        edges.remove(edge_to_remove)
-#        print(len(edges))
-#    for u, v in zip(stubs1, stubs2):
-#        G.add_edge(u, v)
-#        resample = random.sample(edges, int(n_problematic_edges))
-#        print(resample)
-#        print(len(G.edges()))
-#        G.remove_edges_from(resample)
-#        print(len(G.edges()))
-#        resample_nodes = []
-#        for edge in resample:
-#            for node in edge:
-#                resample_nodes.append(node)
-#
-#        print(resample_nodes)
-#        for node in affected_nodes:
-#            deg_diff = original_degree[node] - len(new_neighbors[node])
-#            targets = random.sample(resample_nodes, deg_diff)
-#            print(targets)
-#            for target in targets:
-#                if target != node:
-#                    if G.has_edge(target, node) == False:
-#                        G.add_edge(target, node)
-#                        
-#                        new_neighbors[node].add(target)
-#                        resample_nodes.remove(target)
-#                        print(f'adding edge: {target}, {node}')
-#        fails = 0
-#        for node in affected_nodes:
-#            if original_degree[node] != len(new_neighbors[node]):
-#                print(f' new failure on {node}')
-#                fails += 1
-#        if fails != 0:
-#            G.add_edges_from(resample)
-#        else:
-#            success = True
-            
-                
-    row['edges_rewired'] += len(edges_to_add) 
-#    else:
-#        G.add_edges_from(edges_to_remove)
-        
-    row['r'] += nx.degree_assortativity_coefficient(G)
-    row['time'] += time.time() - start
-    results.loc[len(results)] = row
-    after = degree_list(G)
-    print(f'Has {len(G.edges())} to after')
-    print(f'success: {list(before) == list(after)}')
-    return G, results
-
