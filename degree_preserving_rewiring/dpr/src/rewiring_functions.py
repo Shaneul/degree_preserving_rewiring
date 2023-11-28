@@ -11,7 +11,7 @@ import pandas as pd
 import time
 import random
 
-def rewire(G, target_assortativity, sample_size = 2, timed = False, time_limit=600, method='new'):
+def rewire(G, target_assortativity, name, sample_size = 2, timed = False, time_limit=600, method='new'):
     """
     Parameters
     ----------
@@ -46,7 +46,8 @@ def rewire(G, target_assortativity, sample_size = 2, timed = False, time_limit=6
         preserved : If the degree_list has been preserved (only present in first and last rows)
     """
 
-    first_row = {'iteration': 0, 
+    first_row = {'name':name,
+                 'iteration': 0, 
                  'time': 0, 
                  'r': nx.degree_assortativity_coefficient(G),
                  'target_r': target_assortativity, 
@@ -63,25 +64,26 @@ def rewire(G, target_assortativity, sample_size = 2, timed = False, time_limit=6
     before = degree_list(G)
     if nx.degree_assortativity_coefficient(G) < target_assortativity:
       if method == 'new':
-        G, results = rewire_positive_full(G, results, sample_size)
-        G, results = negatively_rewire(G, target_assortativity, results, sample_size, timed, time_limit)
+        G, results = rewire_positive_full(G, results, name, sample_size)
+        G, results = negatively_rewire(G, target_assortativity, name, results, sample_size, timed, time_limit)
       if method == 'original':
-        G, results = positively_rewire(G, target_assortativity, results, sample_size, timed, time_limit)
+        G, results = positively_rewire(G, target_assortativity, name, results, sample_size, timed, time_limit)
       if method == 'max':
-        G, results = rewire_positive_full(G, results, sample_size)
+        G, results = rewire_positive_full(G, results, name, sample_size)
 
     else:
       if method == 'new':
-        G, results = rewire_negative_full(G, results, sample_size)
-        G, results = positively_rewire(G, target_assortativity, results, sample_size, timed, time_limit)
+        G, results = rewire_negative_full(G, results, name, sample_size)
+        G, results = positively_rewire(G, target_assortativity, name, results, sample_size, timed, time_limit)
       if method == 'original':
-        G, results = negatively_rewire(G, target_assortativity, results, sample_size, timed, time_limit)
+        G, results = negatively_rewire(G, target_assortativity, name, results, sample_size, timed, time_limit)
       if method == 'max':
-        G, results = rewire_negative_full(G, results, sample_size)
+        G, results = rewire_negative_full(G, results, name, sample_size)
 
     after = degree_list(G)
     #we now have a dataframe of all of our relevant results
-    summary_row = {'iteration': results.loc[results.index[-1], 'iteration'], 
+    summary_row = {'name': results.loc[results.index[-1], 'name'],
+                   'iteration': results.loc[results.index[-1], 'iteration'], 
                    'time': results['time'].sum(), 
                    'r': nx.degree_assortativity_coefficient(G),
                    'target_r': target_assortativity, 
@@ -165,7 +167,7 @@ def check_new_edges(potential_edges, G, row):
 
 
 
-def positively_rewire(G: nx.Graph, target_assortativity, results, sample_size = 2, timed = True, time_limit=600):
+def positively_rewire(G: nx.Graph, target_assortativity, name, results, sample_size = 2, timed = True, time_limit=600):
     """
     Function for fine tuning the assortativity value of a graph.
     
@@ -204,7 +206,8 @@ def positively_rewire(G: nx.Graph, target_assortativity, results, sample_size = 
         loop_start = time.time()
         itr += 1
         #define dictionary to track relevant info for each loop
-        row = {'iteration' : itr, 
+        row = {'name': name,
+               'iteration' : itr, 
                'time' : 0, 
                'r' : 0,
                'target_r': target_assortativity,
@@ -251,7 +254,7 @@ def positively_rewire(G: nx.Graph, target_assortativity, results, sample_size = 
 
 
 
-def negatively_rewire(G: nx.Graph, target_assortativity, results, sample_size = 2, timed = False, time_limit=600):
+def negatively_rewire(G: nx.Graph, target_assortativity, name, results, sample_size = 2, timed = False, time_limit=600):
     
     """
     Function for fine tuning the assortativity value of a graph.
@@ -291,7 +294,8 @@ def negatively_rewire(G: nx.Graph, target_assortativity, results, sample_size = 
         loop_start = time.time()
         itr += 1
         #define dictionary to track relevant info for each loop
-        row = {'iteration' : itr, 
+        row = {'name' : name,
+               'iteration' : itr, 
                'time' : 0, 
                'r' : 0,
                'target_r': target_assortativity,
@@ -338,7 +342,7 @@ def negatively_rewire(G: nx.Graph, target_assortativity, results, sample_size = 
 
 
 
-def rewire_negative_full(G: nx.Graph, results, sample_size):
+def rewire_negative_full(G: nx.Graph, results, name, sample_size):
     """
     removes every edge from the graph and adds them back ordered in such a way
     to minimise the assortativity.
@@ -384,7 +388,8 @@ def rewire_negative_full(G: nx.Graph, results, sample_size):
     nodes_descending = sorted(nodes_descending, key=original_degree.get, reverse=True)
     nodes_ascending = sorted(nodes_ascending, key=original_degree.get, reverse=False)
 
-    row = {'iteration' : 1, 
+    row = {'name': name,
+           'iteration' : 1, 
            'time' : 0, 
            'r' : 0,
            'target_r': 0,
@@ -450,7 +455,7 @@ def rewire_negative_full(G: nx.Graph, results, sample_size):
                 stubs1.append(node)
                 j += 1
        
-       edges = list(G.edges())
+        edges = list(G.edges())
         while len(stubs2) < len(stubs1):
             edge_to_remove = random.choice(edges)
             if edge_to_remove[0] not in stubs1:
@@ -487,7 +492,7 @@ def rewire_negative_full(G: nx.Graph, results, sample_size):
 
 
 
-def rewire_positive_full(G: nx.Graph, results, sample_size):
+def rewire_positive_full(G: nx.Graph, results, name, sample_size):
     """
     removes every edge from the graph and adds them back ordered in such a way
     to maximise the assortativity.
@@ -530,7 +535,8 @@ def rewire_positive_full(G: nx.Graph, results, sample_size):
     #sort nodes in descending order of degree
     nodes = sorted(nodes, key=original_degree.get, reverse=True)
 
-    row = {'iteration' : 1, 
+    row = {'name' : name,
+           'iteration' : 1, 
            'time' : 0, 
            'r' : 0,
            'target_r': 0,
