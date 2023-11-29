@@ -115,7 +115,7 @@ def rewire(G, target_assortativity, name, sample_size = 2, timed = False, time_l
     results.loc[len(results)] = summary_row
 
     if return_type == 'summary':
-        summarised_results = results.loc[(results['summary'==1])]
+        summarised_results = results.loc[(results['summary']==1)]
         return summarised_results
     
     else:
