@@ -44,6 +44,10 @@ def rewire(G, target_assortativity, name, sample_size = 2, timed = False, time_l
         self_edges : The number of self edges in the list of potential edges
         existing_edges : The number of edges in the list of potential edges that already exist in the graph
         preserved : If the degree_list has been preserved (only present in first and last rows)
+        method : The method applied. 0 = none (for info about the starting values)
+                                     1 = new method, rewiring_full phase
+                                     2 = new method, second phase
+        summary : Whether or not the row is a summary of the entire rewiring process for a graph
     """
 
     first_row = {'name':name,
@@ -57,6 +61,7 @@ def rewire(G, target_assortativity, name, sample_size = 2, timed = False, time_l
                  'self_edges': 0,
                  'existing_edges': 0, 
                  'preserved': True,
+                 'method': 0,
                  'summary':0}
     
     results = pd.DataFrame([first_row])
@@ -93,7 +98,15 @@ def rewire(G, target_assortativity, name, sample_size = 2, timed = False, time_l
                    'self_edges': results['self_edges'].sum(),
                    'existing_edges': results['existing_edges'].sum(), 
                    'preserved': list(before) == list(after),
+                   'method': 0,
                    'summary': 1}
+
+    if method == 'new':
+        summary_row['method'] = 1
+    if method == 'original':
+        summary_row['method'] = 2
+    if method == 'max':
+        summary_row['method'] = 2
 
     results.loc[len(results)] = summary_row
 
@@ -217,6 +230,7 @@ def positively_rewire(G: nx.Graph, target_assortativity, name, results, sample_s
                'self_edges': 0,
                'existing_edges': 0, 
                'preserved': True,
+               'method': 2,
                'summary': 0}
 
         edges = list(G.edges())                
@@ -305,6 +319,7 @@ def negatively_rewire(G: nx.Graph, target_assortativity, name, results, sample_s
                'self_edges': 0,
                'existing_edges': 0, 
                'preserved': True,
+               'method': 2,
                'summary': 0}
 
         edges = list(G.edges())                
@@ -372,7 +387,7 @@ def rewire_negative_full(G: nx.Graph, results, name, sample_size):
     before = degree_list(G)    
     start = time.time()    
     edges_to_remove = list(G.edges())                
-    
+    itr = 1
     #record the orginal degree of each node
     original_degree = {}
     nodes_descending = []
@@ -389,7 +404,7 @@ def rewire_negative_full(G: nx.Graph, results, name, sample_size):
     nodes_ascending = sorted(nodes_ascending, key=original_degree.get, reverse=False)
 
     row = {'name': name,
-           'iteration' : 1, 
+           'iteration' : itr, 
            'time' : 0, 
            'r' : 0,
            'target_r': 0,
@@ -399,6 +414,7 @@ def rewire_negative_full(G: nx.Graph, results, name, sample_size):
            'self_edges': 0,
            'existing_edges': 0, 
            'preserved': True,
+           'method': 1,
            'summary': 0}
 
     #dictionary in which to record the current degree of the nodes as we add edges 
@@ -424,6 +440,12 @@ def rewire_negative_full(G: nx.Graph, results, name, sample_size):
     G.remove_edges_from(edges_to_remove)
     G.add_edges_from(edges_to_add)
     row['edges_rewired'] += len(edges_to_add) 
+    row['r'] += nx.degree_assortativity_coefficient(G)
+    row['time'] += time.time() - start
+    after = degree_list(G)
+    row['preserved'] = list(before) == list(after)
+    results.loc[len(results)] = row
+    
     edges = list(G.edges())
     
     success = True
@@ -432,6 +454,22 @@ def rewire_negative_full(G: nx.Graph, results, name, sample_size):
             success = False
 
     while success == False:
+        itr += 1
+        start = time.time()
+        row = {'name': name,
+               'iteration' : itr, 
+               'time' : 0, 
+               'r' : 0,
+               'target_r': 0,
+               'sample_size': sample_size, 
+               'edges_rewired': 0,
+               'duplicate_edges': 0, 
+               'self_edges': 0,
+               'existing_edges': 0, 
+               'preserved': True,
+               'method': 1,
+               'summary': 0}
+
         affected_nodes = []
         total_degree = 0
         missing_degree = {}
@@ -481,12 +519,12 @@ def rewire_negative_full(G: nx.Graph, results, name, sample_size):
             success = False
         else:
             success = True
-        
-    row['r'] += nx.degree_assortativity_coefficient(G)
-    row['time'] += time.time() - start
-    after = degree_list(G)
-    row['preserved'] = list(before) == list(after)
-    results.loc[len(results)] = row
+         
+        row['r'] += nx.degree_assortativity_coefficient(G)
+        row['time'] += time.time() - start
+        after = degree_list(G)
+        row['preserved'] = list(before) == list(after)
+        results.loc[len(results)] = row
     
     return G, results
 
@@ -518,11 +556,11 @@ def rewire_positive_full(G: nx.Graph, results, name, sample_size):
         results dataframe passed to the function with one row added per algorithm
         iteration
     """
-    
+    itr = 1
     before = degree_list(G)    
     start = time.time()    
     edges_to_remove = list(G.edges())                
-    
+     
     #record the orginal degree of each node
     original_degree = {}
     nodes = []
@@ -536,7 +574,7 @@ def rewire_positive_full(G: nx.Graph, results, name, sample_size):
     nodes = sorted(nodes, key=original_degree.get, reverse=True)
 
     row = {'name' : name,
-           'iteration' : 1, 
+           'iteration' : itr, 
            'time' : 0, 
            'r' : 0,
            'target_r': 0,
@@ -546,6 +584,7 @@ def rewire_positive_full(G: nx.Graph, results, name, sample_size):
            'self_edges': 0,
            'existing_edges': 0, 
            'preserved': True,
+           'method': 1,
            'summary': 0}
 
     #dictionary in which to record the current neighbors of the nodes as we add edges 
@@ -582,6 +621,23 @@ def rewire_positive_full(G: nx.Graph, results, name, sample_size):
     #degree and remove edges to rewire to them
     
     while success == False:
+        
+        itr += 1
+        start = time.time()
+        row = {'name': name,
+               'iteration' : itr, 
+               'time' : 0, 
+               'r' : 0,
+               'target_r': 0,
+               'sample_size': sample_size, 
+               'edges_rewired': 0,
+               'duplicate_edges': 0, 
+               'self_edges': 0,
+               'existing_edges': 0, 
+               'preserved': True,
+               'method': 1,
+               'summary': 0}
+
         affected_nodes = []
         total_degree = 0
         missing_degree = {}
