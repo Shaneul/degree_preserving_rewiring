@@ -11,7 +11,7 @@ import pandas as pd
 import time
 import random
 
-def rewire(G, target_assortativity, name, sample_size = 2, timed = False, time_limit=600, method='new'):
+def rewire(G, target_assortativity, name, sample_size = 2, timed = False, time_limit=600, method='new', return_type = 'full'):
     """
     Parameters
     ----------
@@ -22,9 +22,11 @@ def rewire(G, target_assortativity, name, sample_size = 2, timed = False, time_l
     timed : bool
     time_limit : float
     method : string
+    return_type: string
+        'full' or 'summarised'
 
     Returns:
-
+    --------
     G : networkx.Graph
         rewired graph, rewiring done in place
 
@@ -48,6 +50,8 @@ def rewire(G, target_assortativity, name, sample_size = 2, timed = False, time_l
                                      1 = new method, rewiring_full phase
                                      2 = new method, second phase
         summary : Whether or not the row is a summary of the entire rewiring process for a graph
+    
+
     """
 
     first_row = {'name':name,
@@ -110,7 +114,12 @@ def rewire(G, target_assortativity, name, sample_size = 2, timed = False, time_l
 
     results.loc[len(results)] = summary_row
 
-    return G, results
+    if return_type == 'summary':
+        summarised_results = results.loc[(results['summary'==1])]
+        return summarised_results
+    
+    else:
+        return G, results
     
 def degree_list(G):
     """
@@ -385,7 +394,7 @@ def rewire_negative_full(G: nx.Graph, results, name, sample_size):
         iteration
     """
     before = degree_list(G)    
-    start = time.time()    
+    alg_start = time.time()    
     edges_to_remove = list(G.edges())                
     itr = 1
     #record the orginal degree of each node
@@ -441,7 +450,7 @@ def rewire_negative_full(G: nx.Graph, results, name, sample_size):
     G.add_edges_from(edges_to_add)
     row['edges_rewired'] += len(edges_to_add) 
     row['r'] += nx.degree_assortativity_coefficient(G)
-    row['time'] += time.time() - start
+    row['time'] += time.time() - alg_start
     after = degree_list(G)
     row['preserved'] = list(before) == list(after)
     results.loc[len(results)] = row
@@ -525,12 +534,15 @@ def rewire_negative_full(G: nx.Graph, results, name, sample_size):
         after = degree_list(G)
         row['preserved'] = list(before) == list(after)
         results.loc[len(results)] = row
+
+        if time.time() - alg_start > max_time:
+            break
     
     return G, results
 
 
 
-def rewire_positive_full(G: nx.Graph, results, name, sample_size):
+def rewire_positive_full(G: nx.Graph, results, name, sample_size, max_time = 600):
     """
     removes every edge from the graph and adds them back ordered in such a way
     to maximise the assortativity.
@@ -558,7 +570,7 @@ def rewire_positive_full(G: nx.Graph, results, name, sample_size):
     """
     itr = 1
     before = degree_list(G)    
-    start = time.time()    
+    alg_start = time.time()    
     edges_to_remove = list(G.edges())                
      
     #record the orginal degree of each node
@@ -606,9 +618,16 @@ def rewire_positive_full(G: nx.Graph, results, name, sample_size):
     for node in new_neighbors:
         for target in new_neighbors[node]:
             edges_to_add.append([node, target])
+    
     G.remove_edges_from(edges_to_remove)
     G.add_edges_from(edges_to_add)
     row['edges_rewired'] += len(edges_to_add)
+    row['r'] += nx.degree_assortativity_coefficient(G)
+    row['time'] += time.time() - start
+    after = degree_list(G)
+    row['preserved'] = list(before) == list(after)
+    results.loc[len(results)] = row
+    
     edges = list(G.edges())
     
     #check to ensure that we have maintained the degree sequence
@@ -689,12 +708,14 @@ def rewire_positive_full(G: nx.Graph, results, name, sample_size):
         else:
             success = True
     
-    row['r'] += nx.degree_assortativity_coefficient(G)
-    row['time'] += time.time() - start
-    after = degree_list(G)
-    row['preserved'] = list(before) == list(after)
-    results.loc[len(results)] = row
-    
+        row['r'] += nx.degree_assortativity_coefficient(G)
+        row['time'] += time.time() - start
+        after = degree_list(G)
+        row['preserved'] = list(before) == list(after)
+        results.loc[len(results)] = row
+        if time.time() - alg_start > max_time:
+            break
+
     return G, results
 
 
