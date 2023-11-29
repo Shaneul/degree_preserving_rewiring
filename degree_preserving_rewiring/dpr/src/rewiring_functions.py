@@ -626,7 +626,7 @@ def rewire_positive_full(G: nx.Graph, results, name, sample_size, results_type, 
     G.add_edges_from(edges_to_add)
     row['edges_rewired'] += len(edges_to_add)
     row['r'] += nx.degree_assortativity_coefficient(G)
-    row['time'] += time.time() - start
+    row['time'] += time.time() - alg_start
     after = degree_list(G)
     row['preserved'] = list(before) == list(after)
     results.loc[len(results)] = row
