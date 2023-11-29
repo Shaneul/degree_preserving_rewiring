@@ -9,6 +9,16 @@ import numpy as np
 from .MLE.MLE_functions import MLE, degree_list
 import networkx as nx
 
+def generate_graph(distribution, target_mean, size):
+    if distribution == 'weibull':
+        x, G = generate_weibull(target_mean, size)
+    if distribution == 'lognormal':
+        x, G = generate_lognormal(target_mean, size)
+    if distribution == 'exponential':
+        x, G = generate_exponential(target_mean, size)
+
+    return G
+
 def generate_weibull(target_mean, size, params = [2.3, 0.6]):
     """
     Function to generate graph with a weibull distribution
