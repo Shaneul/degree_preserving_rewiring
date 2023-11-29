@@ -366,7 +366,7 @@ def negatively_rewire(G: nx.Graph, target_assortativity, name, results, sample_s
 
 
 
-def rewire_negative_full(G: nx.Graph, results, name, return_type, sample_size, return_type, max_time = 600):
+def rewire_negative_full(G: nx.Graph, results, name, sample_size, return_type, max_time = 600):
     """
     removes every edge from the graph and adds them back ordered in such a way
     to minimise the assortativity.
