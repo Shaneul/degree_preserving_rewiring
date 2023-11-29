@@ -537,8 +537,9 @@ def rewire_negative_full(G: nx.Graph, results, name, return_type, sample_size):
             results.loc[len(results)] = row
 
         if time.time() - alg_start > max_time:
-            results.loc[len(results)] = row
             break
+    
+    results.loc[len(results)] = row
     
     return G, results
 
@@ -719,9 +720,9 @@ def rewire_positive_full(G: nx.Graph, results, name, sample_size, results_type, 
             results.loc[len(results)] = row
 
         if time.time() - alg_start > max_time:
-            results.loc[len(results)] = row
             break
 
+    results.loc[len(results)] = row
     return G, results
 
 
