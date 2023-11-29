@@ -73,21 +73,21 @@ def rewire(G, target_assortativity, name, sample_size = 2, timed = False, time_l
     before = degree_list(G)
     if nx.degree_assortativity_coefficient(G) < target_assortativity:
       if method == 'new':
-        G, results = rewire_positive_full(G, results, name, sample_size, return_type)
-        G, results = negatively_rewire(G, target_assortativity, name, results, sample_size, timed, time_limit)
+        G = rewire_positive_full(G, results, name, sample_size, return_type)
+        G = negatively_rewire(G, target_assortativity, name, results, sample_size, timed, time_limit)
       if method == 'original':
-        G, results = positively_rewire(G, target_assortativity, name, results, sample_size, timed, time_limit)
+        G = positively_rewire(G, target_assortativity, name, results, sample_size, timed, time_limit)
       if method == 'max':
-        G, results = rewire_positive_full(G, results, name, sample_size, return_type)
+        G = rewire_positive_full(G, results, name, sample_size, return_type)
 
     else:
       if method == 'new':
-        G, results = rewire_negative_full(G, results, name, sample_size, return_type)
-        G, results = positively_rewire(G, target_assortativity, name, results, sample_size, timed, time_limit)
+        G = rewire_negative_full(G, results, name, sample_size, return_type)
+        G = positively_rewire(G, target_assortativity, name, results, sample_size, timed, time_limit)
       if method == 'original':
-        G, results = negatively_rewire(G, target_assortativity, name, results, sample_size, timed, time_limit)
+        G = negatively_rewire(G, target_assortativity, name, results, sample_size, timed, time_limit)
       if method == 'max':
-        G, results = rewire_negative_full(G, results, name, sample_size, return_type)
+        G = rewire_negative_full(G, results, name, sample_size, return_type)
 
     after = degree_list(G)
     #we now have a dataframe of all of our relevant results
@@ -273,7 +273,7 @@ def positively_rewire(G: nx.Graph, target_assortativity, name, results, sample_s
             if time_elapsed > time_limit:
                 return G, results
 
-    return G, results
+    return G
 
 
 
@@ -362,7 +362,7 @@ def negatively_rewire(G: nx.Graph, target_assortativity, name, results, sample_s
             if time_elapsed > time_limit:
                 return G, results
 
-    return G, results
+    return G
 
 
 
@@ -541,7 +541,7 @@ def rewire_negative_full(G: nx.Graph, results, name, return_type, sample_size):
     
     results.loc[len(results)] = row
     
-    return G, results
+    return G
 
 
 
@@ -723,7 +723,7 @@ def rewire_positive_full(G: nx.Graph, results, name, sample_size, results_type, 
             break
 
     results.loc[len(results)] = row
-    return G, results
+    return G
 
 
 
