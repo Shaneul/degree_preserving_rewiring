@@ -271,7 +271,7 @@ def positively_rewire(G: nx.Graph, target_assortativity, name, results, sample_s
         
         if timed == True:
             if time_elapsed > time_limit:
-                return G, results
+                return G
 
     return G
 
@@ -360,7 +360,7 @@ def negatively_rewire(G: nx.Graph, target_assortativity, name, results, sample_s
         
         if timed == True:
             if time_elapsed > time_limit:
-                return G, results
+                return G
 
     return G
 
