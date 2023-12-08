@@ -771,3 +771,4 @@ def test_sample_sizes(G, results, name, sample_size, n_tests):
 
         results.loc[len(results)] = row
         j += 1
+    return results
