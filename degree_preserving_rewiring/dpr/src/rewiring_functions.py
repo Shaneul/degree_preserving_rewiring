@@ -736,7 +736,7 @@ def test_sample_sizes(G, results, name, sample_size, n_tests):
                'sample_size': sample_size, 
                'duplicate_edges': 0, 
                'self_edges': 0,
-               'existing_edges': 0
+               'existing_edges': 0,
                'success': True} 
 
         edges = list(G.edges())                
