@@ -726,66 +726,48 @@ def rewire_positive_full(G: nx.Graph, results, name, sample_size, return_type, m
     return G
 
 
+def test_sample_sizes(G, results, name, sample_size, n_tests):
 
-def rewire_positive_full_deprecated(G: nx.Graph, results, sample_size):
-    
-    start = time.time()    
-    edges_to_remove = list(G.edges())                
-    #record the orginal degree of each node
-    original_degree = {}
-    nodes = []
-    for edge in edges_to_remove:
-        for node in edge:
-            if node not in nodes:
+    j = 0
+
+    while j < n_tests:
+        #define dictionary to track relevant info for each loop
+        row = {'name': name,
+               'sample_size': sample_size, 
+               'duplicate_edges': 0, 
+               'self_edges': 0,
+               'existing_edges': 0
+               'success': True} 
+
+        edges = list(G.edges())                
+        edges_to_remove = random.sample(edges, sample_size)
+        deg_dict = {}
+        nodes = []
+        for edge in edges_to_remove:
+            for node in edge:
                 nodes.append(node)
-            original_degree[node] = G.degree(node)
+                deg_dict[node] = G.degree(node)
     
-    #sort nodes in descending order of degree
-    nodes_sorted = sorted(nodes, key=original_degree.get, reverse=True)
-        
-    row = {'iteration' : 1, 
-           'time' : 0, 
-           'r' : 0,
-           'target_r': 0,
-           'sample_size': sample_size, 
-           'edges_rewired': 0,
-           'duplicate_edges': 0, 
-           'self_edges': 0,
-           'existing_edges': 0, 
-           'preserved': True,
-           'summary': 0}
+        nodes_sorted = sorted(nodes, key=deg_dict.get)
+        potential_edges = [[nodes_sorted[i], nodes_sorted[i+1]] for i in range(0,len(nodes_sorted),2)]
+        G.remove_edges_from(edges_to_remove)
+                
+        edges_to_add = []
+        for edge in potential_edges:
+            if G.has_edge(edge[0], edge[1]) == False:
+                if edge[0] != edge[1]:
+                    if [edge[1], edge[0]] not in potential_edges:
+                        if potential_edges.count(edge) == 1:
+                            edges_to_add.append(edge)
+                        else:
+                            row['duplicate_edges'] += 0.5
+                    else:
+                        row['duplicate_edges'] += 0.5
+                else:
+                    row['self_edges'] += 1
+            else:
+                row['existing_edges'] += 1
+                row['success'] = False
 
-    #dictionary in which to record the current degree of the nodes as we add edges 
-    current_degree = {}
-    for node in original_degree:
-        current_degree[node] = 0#original_degree[node] - appearances[node]
-
-    potential_edges = []
-    for ind, node in enumerate(nodes_sorted):
-        j = ind + 1
-        while current_degree[node] < original_degree[node]:
-            try:
-                target = nodes_sorted[j]
-            except IndexError:
-                print('index error')
-                break
-            if current_degree[target] < original_degree[target]:
-                potential_edges.append([node, target])
-                current_degree[node] += 1
-                current_degree[target] += 1
-            j += 1
-
-    G.remove_edges_from(edges_to_remove)
-    edges_to_add, row = check_new_edges(potential_edges, G, row)
-    if len(edges_to_add) == len(edges_to_remove):
-        G.add_edges_from(edges_to_add)
-        print('adding edges')
-        row['edges_rewired'] += len(edges_to_add) 
-    else:
-        G.add_edges_from(edges_to_remove)
-
-    print(nx.degree_assortativity_coefficient(G))
-    row['r'] += nx.degree_assortativity_coefficient(G)
-    row['time'] += time.time() - start
-    results.loc[len(results)] = row
-    return G, results
+        results.loc[len(results)] = row
+        j += 1
