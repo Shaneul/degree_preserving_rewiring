@@ -5,7 +5,7 @@ with open("README.md", "r") as f:
 
 setup(
     name="degree_preserving_rewiring",
-    version="0.2.3",
+    version="0.2.4",
     description="Functions to tune the assortativity of a networkx Graph while maintaining degree sequence",
     package_dir={"": "degree_preserving_rewiring"},
     packages=find_packages(where="app"),

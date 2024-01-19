@@ -10,6 +10,25 @@ from .MLE.MLE_functions import MLE, degree_list
 import networkx as nx
 
 def generate_graph(distribution, target_mean, size):
+    """
+    Function to call chosen graph generation function from this file
+
+    Parameters:
+    ----------
+        distribution: str
+            desired degree distribution of graph
+
+        target_mean: double
+            the desired average degree of the graph
+
+        size:
+            the number of nodes desired in the graph
+
+    Returns:
+    ---------
+        G: networkx.graph
+            graph with chosen degree distribution
+    """
     if distribution == 'weibull':
         x, G = generate_weibull(target_mean, size)
     if distribution == 'lognormal':

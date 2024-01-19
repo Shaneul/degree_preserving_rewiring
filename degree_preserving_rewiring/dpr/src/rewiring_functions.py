@@ -17,13 +17,29 @@ def rewire(G, target_assortativity, name, sample_size = 2, timed = False, time_l
     ----------
 
     G : networkx.Graph
+        graph to be reiwired
     target_assortativity : float in range [-1, 1]
+        desired value for assortativity
+    name: str
+        name to appear in results data set
     sample_size : int
+        number of edges to rewire at each iteration
     timed : bool
+        whether or not to impose a maximum time on the algorithm
     time_limit : float
+        time limit if the algorithm is timed
     method : string
+        can be 'new', 'old' or 'max'
+            new: method described in paper [ADD REF WHEN AVAILABLE]
+
+            old: original algorithm from Van Meighem et al. (2010)
+
+            max: only step one of new version
     return_type: string
-        'full' or 'summarised'
+        can be 'full' or 'summarised'
+            'full' : returns detailed results at each algorithm iteration
+
+            'summarised': returns only total time taken, total iterations, etc.
 
     Returns:
     --------
