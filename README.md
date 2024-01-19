@@ -17,7 +17,8 @@ import networkx as nx
 from degree_preserving_rewiring import rewire
 
 G = nx.erdos_renyi_graph(5000, p = 5/4999, seed = 42)
-G, results = rewire(G, 0.4, 'random graph', sample_size=20, timed=True, time_limit=120, method='new')
+G, results = rewire(G, 0.4, 'random graph', sample_size=20, timed=True, 
+                    time_limit=120, method='new')
 
 ```
 
