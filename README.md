@@ -1,3 +1,16 @@
+# Installation
+
+## From source
+
+```console
+git clone https://github.com/Shaneul/degree_preserving_rewiring
+cd degree_preserving_rewiring
+pip install .
+
+```
+
+
+
 # TODO
 
 - [ ] Update setup.py, rebuild package and bump version
