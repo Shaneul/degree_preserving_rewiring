@@ -76,7 +76,7 @@ def generate_weibull(target_mean, size, params = [2.3, 0.6]):
 
 
     while dist != 'Weibull':
-        pvals = np.random.uniform(0,1, 1000)
+        pvals = np.random.uniform(0,1, size)
 
         x = []
         for val in pvals:
@@ -140,7 +140,7 @@ def generate_lognormal(target_mean, size):
 
 
     while dist != 'Lognormal':
-        pvals = np.random.uniform(0,1, 1000)
+        pvals = np.random.uniform(0,1, size)
 
         x = []
         for val in pvals:
@@ -204,7 +204,7 @@ def generate_exponential(target_mean, size):
 
 
     while dist != 'Exponential':
-        pvals = np.random.uniform(0,1, 1000)
+        pvals = np.random.uniform(0,1, size)
 
         x = []
         for val in pvals:
