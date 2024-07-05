@@ -38,7 +38,7 @@ def generate_graph(distribution, target_mean, size):
 
     return G
 
-def generate_weibull(target_mean, size, params = [2.3, 0.6]):
+def generate_weibull(target_mean, size, params = [2.1, 0.48]):
     """
     Function to generate graph with a weibull distribution
     set p1 = 2.1, p2=0.48 for mean degree of 5
