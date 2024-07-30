@@ -9,7 +9,7 @@ import numpy as np
 from .MLE.MLE_functions import MLE, degree_list
 import networkx as nx
 
-def generate_graph(distribution, target_mean, size):
+def generate_graph(distribution, target_mean, size, params='default'):
     """
     Function to call chosen graph generation function from this file
 
@@ -29,12 +29,21 @@ def generate_graph(distribution, target_mean, size):
         G: networkx.graph
             graph with chosen degree distribution
     """
-    if distribution == 'weibull':
-        x, G = generate_weibull(target_mean, size)
-    if distribution == 'lognormal':
-        x, G = generate_lognormal(target_mean, size)
-    if distribution == 'exponential':
-        x, G = generate_exponential(target_mean, size)
+    if params == 'default':
+        if distribution == 'weibull':
+            x, G = generate_weibull(target_mean, size)
+        if distribution == 'lognormal':
+            x, G = generate_lognormal(target_mean, size)
+        if distribution == 'exponential':
+            x, G = generate_exponential(target_mean, size)
+    else:
+        if distribution == 'weibull':
+            x, G = generate_weibull(target_mean, size, params)
+        if distribution == 'lognormal':
+            x, G = generate_lognormal(target_mean, size, params)
+        if distribution == 'exponential':
+            x, G = generate_exponential(target_mean, size, params)
+    
 
     return G
 
@@ -100,7 +109,7 @@ def generate_weibull(target_mean, size, params = [2.1, 0.48]):
             dist = None
     return x, G        
 
-def generate_lognormal(target_mean, size):
+def generate_lognormal(target_mean, size, params = [1.4, 0.6]):
     """
     Function to generate graph with a lognormal distribution
     set p1 = 1.4, p2 = 0.6 for mean degree of 5
@@ -125,8 +134,6 @@ def generate_lognormal(target_mean, size):
 
     """
     inf = np.arange(1000)
-    if target_mean == 5:
-        params = [1.4, .6]
     Input = [i for i in range(1,5000)]
     k_min = 1
     C = 1
@@ -166,10 +173,10 @@ def generate_lognormal(target_mean, size):
 
 
 
-def generate_exponential(target_mean, size):
+def generate_exponential(target_mean, size, params = [4.5]):
     """
     Function to generate graph with an exponential distribution
-    set p1 = 4.5for mean degree of 5
+    set p1 = 4.5, for mean degree of 5
 
     Parameters
     ----------
@@ -190,8 +197,6 @@ def generate_exponential(target_mean, size):
         Graph with desired distribution.
 
     """
-    if target_mean == 5:
-        params = [4.5]
     Input = np.arange(1,5000)
     k_min = 1
     C = 1
